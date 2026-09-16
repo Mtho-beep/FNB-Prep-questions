@@ -19,6 +19,7 @@ import {
   MessageSquareText,
   X,
   GraduationCap,
+  Star,
 } from 'lucide-react'
 import type { Category } from '../types/questions'
 import { categoryToSlug } from '../utils/slug'
@@ -121,6 +122,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               Practice Modes
             </p>
             <div className="space-y-1">
+              <NavLink to="/practice/favorites" className={({ isActive }) => navLinkClasses(isActive)} onClick={onClose}>
+                <Star size={18} />
+                Favorites
+              </NavLink>
               <NavLink to="/coderbyte" className={({ isActive }) => navLinkClasses(isActive)} onClick={onClose}>
                 <Code2 size={18} />
                 Coderbyte Assessment

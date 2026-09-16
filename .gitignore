@@ -26,3 +26,6 @@ dist-ssr
 # Python
 __pycache__/
 .venv/
+
+# Streamlit secrets (Neon connection string, app password)
+.streamlit/secrets.toml

@@ -74,11 +74,12 @@ export interface CodingQuestion {
   testCases: { args: string; expected: string }[]
 }
 
-/** Per-question progress persisted to LocalStorage. */
+/** Per-question progress persisted to the database (or LocalStorage). */
 export interface QuestionProgress {
   completed: boolean
   mastered: boolean
   difficult: boolean
+  favorite: boolean
   lastViewedAt?: string
 }
 
@@ -105,6 +106,6 @@ export type QuestionMode = 'browse' | 'random' | 'weak' | 'mock' | 'rapid'
 export interface FilterState {
   category: Category | 'All'
   difficulty: Difficulty | 'All'
-  status: 'All' | 'Completed' | 'Not Completed' | 'Mastered' | 'Difficult'
+  status: 'All' | 'Completed' | 'Not Completed' | 'Mastered' | 'Difficult' | 'Favorites'
   search: string
 }

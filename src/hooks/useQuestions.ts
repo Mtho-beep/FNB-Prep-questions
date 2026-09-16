@@ -37,6 +37,7 @@ export function useQuestions(progress: UseProgressReturn, source: Question[] = a
         if (filters.status === 'Not Completed' && p.completed) return false
         if (filters.status === 'Mastered' && !p.mastered) return false
         if (filters.status === 'Difficult' && !p.difficult) return false
+        if (filters.status === 'Favorites' && !p.favorite) return false
       }
 
       if (term) {
@@ -67,6 +68,8 @@ export function useQuestions(progress: UseProgressReturn, source: Question[] = a
     [source, progress],
   )
 
+  const favoriteQuestions = useMemo(() => source.filter((q) => progress.getProgress(q.id).favorite), [source, progress])
+
   return {
     filters,
     setCategory,
@@ -76,5 +79,6 @@ export function useQuestions(progress: UseProgressReturn, source: Question[] = a
     clearFilters,
     filteredQuestions,
     weakAreaQuestions,
+    favoriteQuestions,
   }
 }

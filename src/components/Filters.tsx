@@ -11,7 +11,7 @@ interface FiltersProps {
 }
 
 const difficulties: (Difficulty | 'All')[] = ['All', 'Beginner', 'Intermediate', 'Advanced']
-const statuses: FilterState['status'][] = ['All', 'Completed', 'Not Completed', 'Mastered', 'Difficult']
+const statuses: FilterState['status'][] = ['All', 'Completed', 'Not Completed', 'Mastered', 'Difficult', 'Favorites']
 
 function selectClasses() {
   return 'focus-ring rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter, MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { Menu, RotateCcw } from 'lucide-react'
+import { Menu, RotateCcw, Cloud, CloudOff, Loader2 } from 'lucide-react'
 import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './pages/Dashboard'
 import { Practice } from './pages/Practice'
@@ -8,12 +8,14 @@ import { MockInterviewPage } from './pages/MockInterviewPage'
 import { Coderbyte } from './pages/Coderbyte'
 import { RapidFire } from './pages/RapidFire'
 import { useProgress } from './hooks/useProgress'
+import { isEmbedded, isStreamlit, useSaveStatus } from './lib/streamlit'
 
 function pageTitleFor(pathname: string): string {
   if (pathname === '/') return 'Dashboard'
   if (pathname.startsWith('/coderbyte')) return 'Coderbyte Technical Assessment'
   if (pathname.startsWith('/rapid-fire')) return 'Rapid Fire'
   if (pathname.startsWith('/mock-interview')) return 'Mock Interview'
+  if (pathname === '/practice/favorites') return 'Favorites'
   if (pathname.startsWith('/practice')) return 'Practice'
   return 'AI Interview Prep'
 }
@@ -59,6 +61,30 @@ function ResetProgressButton({ onReset }: { onReset: () => void }) {
   )
 }
 
+function SaveStatusBadge() {
+  const { status, error } = useSaveStatus()
+  if (status === 'idle') return null
+  if (status === 'saving') {
+    return (
+      <span className="flex items-center gap-1 text-xs text-slate-400">
+        <Loader2 size={14} className="animate-spin" /> Saving...
+      </span>
+    )
+  }
+  if (status === 'error') {
+    return (
+      <span className="flex items-center gap-1 text-xs font-medium text-rose-600" title={error ?? undefined}>
+        <CloudOff size={14} /> Save failed
+      </span>
+    )
+  }
+  return (
+    <span className="flex items-center gap-1 text-xs text-emerald-600">
+      <Cloud size={14} /> Saved
+    </span>
+  )
+}
+
 function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const progress = useProgress()
@@ -81,7 +107,10 @@ function AppShell() {
             </button>
             <h1 className="text-sm font-semibold text-navy-900 sm:text-base">{pageTitleFor(location.pathname)}</h1>
           </div>
-          <ResetProgressButton onReset={progress.resetProgress} />
+          <div className="flex items-center gap-3">
+            {isStreamlit && <SaveStatusBadge />}
+            <ResetProgressButton onReset={progress.resetProgress} />
+          </div>
         </header>
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
@@ -100,9 +129,9 @@ function AppShell() {
   )
 }
 
-// Inside Streamlit the app runs in an `about:srcdoc` iframe, which has no real URL
-// for BrowserRouter/HashRouter to work with, so routes are kept in memory there.
-const Router = window.location.protocol === 'about:' ? MemoryRouter : BrowserRouter
+// Inside Streamlit the app runs in an iframe whose URL is not the app's own,
+// so routes are kept in memory there.
+const Router = isEmbedded ? MemoryRouter : BrowserRouter
 
 function App() {
   return (

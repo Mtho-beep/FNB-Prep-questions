@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Shuffle, Flag, ListChecks } from 'lucide-react'
+import { Shuffle, Flag, ListChecks, Star } from 'lucide-react'
 import type { UseProgressReturn } from '../hooks/useProgress'
 import { useQuestions, defaultFilters } from '../hooks/useQuestions'
 import { allQuestions, questionsByCategory } from '../data'
@@ -27,7 +27,8 @@ export function Practice({ progress }: PracticeProps) {
   const navigate = useNavigate()
   const isRandomMode = mode === 'random'
   const isWeakAreaMode = mode === 'weak-areas'
-  const category = mode && !isRandomMode && !isWeakAreaMode ? slugToCategory(mode) : undefined
+  const isFavoritesMode = mode === 'favorites'
+  const category = mode && !isRandomMode && !isWeakAreaMode && !isFavoritesMode ? slugToCategory(mode) : undefined
 
   const [randomOrder, setRandomOrder] = useState<string[]>(() => shuffle(allQuestions.map((q) => q.id)))
   const [index, setIndex] = useState(0)
@@ -51,12 +52,21 @@ export function Practice({ progress }: PracticeProps) {
 
   const activeList = useMemo(() => {
     if (isWeakAreaMode) return questionHook.weakAreaQuestions
+    if (isFavoritesMode) return questionHook.favoriteQuestions
     if (isRandomMode) {
       const byId = new Map(allQuestions.map((q) => [q.id, q]))
       return randomOrder.map((id) => byId.get(id)!).filter(Boolean)
     }
     return questionHook.filteredQuestions
-  }, [isWeakAreaMode, isRandomMode, randomOrder, questionHook.filteredQuestions, questionHook.weakAreaQuestions])
+  }, [
+    isWeakAreaMode,
+    isFavoritesMode,
+    isRandomMode,
+    randomOrder,
+    questionHook.filteredQuestions,
+    questionHook.weakAreaQuestions,
+    questionHook.favoriteQuestions,
+  ])
 
   const currentQuestion = activeList[Math.min(index, Math.max(activeList.length - 1, 0))]
 
@@ -74,15 +84,19 @@ export function Practice({ progress }: PracticeProps) {
     ? 'Random Mode'
     : isWeakAreaMode
       ? 'Weak Areas Mode'
-      : category ?? 'All Questions'
+      : isFavoritesMode
+        ? 'Favorites'
+        : category ?? 'All Questions'
 
   const pageDescription = isRandomMode
     ? 'Questions are pulled from every category in random order.'
     : isWeakAreaMode
       ? 'Only questions marked difficult, or not yet completed, appear here.'
-      : 'Work through this category sequentially, or use search and filters to jump around.'
+      : isFavoritesMode
+        ? 'Questions you starred. Tap the star on any question to add or remove it.'
+        : 'Work through this category sequentially, or use search and filters to jump around.'
 
-  if (!category && !isRandomMode && !isWeakAreaMode) {
+  if (!category && !isRandomMode && !isWeakAreaMode && !isFavoritesMode) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <p className="text-slate-500">Unknown category. Please choose one from the sidebar.</p>
@@ -97,7 +111,8 @@ export function Practice({ progress }: PracticeProps) {
           <div className="mb-1 flex items-center gap-2">
             {isRandomMode && <Shuffle size={18} className="text-indigo-500" />}
             {isWeakAreaMode && <Flag size={18} className="text-rose-500" />}
-            {!isRandomMode && !isWeakAreaMode && <ListChecks size={18} className="text-brand-500" />}
+            {isFavoritesMode && <Star size={18} className="text-amber-500" />}
+            {!isRandomMode && !isWeakAreaMode && !isFavoritesMode && <ListChecks size={18} className="text-brand-500" />}
             <h1 className="text-xl font-bold text-navy-900">{pageTitle}</h1>
           </div>
           <p className="text-sm text-slate-500">{pageDescription}</p>
@@ -114,7 +129,7 @@ export function Practice({ progress }: PracticeProps) {
         )}
       </div>
 
-      {!isWeakAreaMode && (
+      {!isWeakAreaMode && !isFavoritesMode && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="sm:flex-1">
             <SearchBar value={questionHook.filters.search} onChange={questionHook.setSearch} />
@@ -138,7 +153,9 @@ export function Practice({ progress }: PracticeProps) {
           <p className="text-slate-500">
             {isWeakAreaMode
               ? "No weak areas right now — nothing is marked difficult or incomplete. Nice work!"
-              : 'No questions match your current search/filters.'}
+              : isFavoritesMode
+                ? 'No favorites yet. Tap the star on any question to save it here.'
+                : 'No questions match your current search/filters.'}
           </p>
         </div>
       ) : (
@@ -151,6 +168,7 @@ export function Practice({ progress }: PracticeProps) {
             progress={progress.getProgress(currentQuestion.id)}
             onToggleMastered={() => progress.toggleMastered(currentQuestion.id)}
             onToggleDifficult={() => progress.toggleDifficult(currentQuestion.id)}
+            onToggleFavorite={() => progress.toggleFavorite(currentQuestion.id)}
             onMarkCompleted={() => progress.markCompleted(currentQuestion.id)}
             onNext={() => setIndex((i) => Math.min(i + 1, activeList.length - 1))}
             onPrevious={() => setIndex((i) => Math.max(i - 1, 0))}

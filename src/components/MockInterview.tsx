@@ -4,6 +4,7 @@ import type { Category, Question } from '../types/questions'
 import { allQuestions } from '../data'
 import type { UseProgressReturn } from '../hooks/useProgress'
 import { DifficultyBadge } from './Badge'
+import { FavoriteButton } from './FavoriteButton'
 import { AnswerDropdown } from './AnswerDropdown'
 import { ProgressBar } from './ProgressBar'
 
@@ -214,6 +215,9 @@ export function MockInterview({ progress }: MockInterviewProps) {
           <span className="text-slate-300">•</span>
           <span className="text-xs font-medium text-slate-500">{currentQuestion.category}</span>
           <DifficultyBadge difficulty={currentQuestion.difficulty} />
+          <span className="ml-auto">
+            <FavoriteButton isFavorite={questionProgress.favorite} onToggle={() => progress.toggleFavorite(currentQuestion.id)} />
+          </span>
         </div>
 
         <h3 className="mb-6 text-lg font-semibold leading-snug text-navy-900 sm:text-xl">"{currentQuestion.question}"</h3>

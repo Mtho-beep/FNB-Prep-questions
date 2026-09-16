@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Award, Flag, ArrowLeft, ArrowRight, PenLine, Check } from 'lucide-react'
 import type { Question, QuestionProgress } from '../types/questions'
 import { DifficultyBadge } from './Badge'
+import { FavoriteButton } from './FavoriteButton'
 import { AnswerDropdown } from './AnswerDropdown'
 
 interface QuestionCardProps {
@@ -11,6 +12,7 @@ interface QuestionCardProps {
   progress: QuestionProgress
   onToggleMastered: () => void
   onToggleDifficult: () => void
+  onToggleFavorite: () => void
   onMarkCompleted: () => void
   onNext?: () => void
   onPrevious?: () => void
@@ -27,6 +29,7 @@ export function QuestionCard({
   progress,
   onToggleMastered,
   onToggleDifficult,
+  onToggleFavorite,
   onMarkCompleted,
   onNext,
   onPrevious,
@@ -72,6 +75,7 @@ export function QuestionCard({
               <Flag size={12} /> Difficult
             </span>
           )}
+          <FavoriteButton isFavorite={progress.favorite} onToggle={onToggleFavorite} />
         </div>
       </div>
 

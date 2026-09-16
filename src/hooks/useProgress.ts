@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { useLocalStorage } from './useLocalStorage'
+import { usePersistentProgress } from './usePersistentProgress'
 import type { Category, MockInterviewSession, ProgressState, QuestionProgress } from '../types/questions'
 import { allQuestions, coderbyteQuestions, practiceCategories, questionsByCategory } from '../data'
 
@@ -10,17 +10,33 @@ const emptyProgressState: ProgressState = {
   mockInterviewHistory: [],
 }
 
+const defaultQuestionProgress: QuestionProgress = { completed: false, mastered: false, difficult: false, favorite: false }
+
+// Spreads over the defaults so rows saved before `favorite` existed still get it.
 function getOrDefault(questions: Record<string, QuestionProgress>, id: string): QuestionProgress {
-  return questions[id] ?? { completed: false, mastered: false, difficult: false }
+  return { ...defaultQuestionProgress, ...questions[id] }
+}
+
+let initialRemoteProgress: ProgressState | undefined
+
+/**
+ * Called once before the app renders inside Streamlit with the progress
+ * loaded from the database (null when the database is empty).
+ */
+export function setInitialRemoteProgress(progress: unknown) {
+  if (progress && typeof progress === 'object' && 'questions' in progress) {
+    const p = progress as ProgressState
+    initialRemoteProgress = { ...p, mockInterviewHistory: p.mockInterviewHistory ?? [] }
+  }
 }
 
 /**
- * Central progress-tracking hook. Wraps a single LocalStorage-persisted
- * ProgressState object and exposes convenient read/write helpers used
+ * Central progress-tracking hook. Wraps a single persisted (Neon database via
+ * Streamlit, or LocalStorage) ProgressState object and exposes convenient read/write helpers used
  * throughout the app (question cards, dashboard stats, mock interview).
  */
 export function useProgress() {
-  const [state, setState] = useLocalStorage<ProgressState>(STORAGE_KEY, emptyProgressState)
+  const [state, setState] = usePersistentProgress(STORAGE_KEY, emptyProgressState, initialRemoteProgress)
 
   const getProgress = useCallback((id: string) => getOrDefault(state.questions, id), [state.questions])
 
@@ -93,6 +109,19 @@ export function useProgress() {
     [setState],
   )
 
+  const toggleFavorite = useCallback(
+    (id: string) => {
+      setState((prev) => {
+        const current = getOrDefault(prev.questions, id)
+        return {
+          ...prev,
+          questions: { ...prev.questions, [id]: { ...current, favorite: !current.favorite } },
+        }
+      })
+    },
+    [setState],
+  )
+
   const addMockInterviewSession = useCallback(
     (session: MockInterviewSession) => {
       setState((prev) => ({
@@ -113,11 +142,13 @@ export function useProgress() {
     let completed = 0
     let mastered = 0
     let difficult = 0
+    let favorites = 0
     for (const id of allIds) {
       const p = getOrDefault(state.questions, id)
       if (p.completed) completed++
       if (p.mastered) mastered++
       if (p.difficult) difficult++
+      if (p.favorite) favorites++
     }
 
     const categoryProgress: Record<Category, { total: number; completed: number; mastered: number }> = {} as Record<
@@ -142,6 +173,7 @@ export function useProgress() {
       remaining: totalQuestions - completed,
       mastered,
       difficult,
+      favorites,
       percentComplete: totalQuestions === 0 ? 0 : Math.round((completed / totalQuestions) * 100),
       categoryProgress,
     }
@@ -162,6 +194,7 @@ export function useProgress() {
     markCompleted,
     toggleMastered,
     toggleDifficult,
+    toggleFavorite,
     addMockInterviewSession,
     resetProgress,
     stats,

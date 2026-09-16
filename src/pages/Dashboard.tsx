@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlayCircle, Shuffle, Flag, MessageSquareText, Code2, Clock, Award, TrendingUp } from 'lucide-react'
+import { PlayCircle, Shuffle, Flag, MessageSquareText, Code2, Clock, Award, TrendingUp, Star } from 'lucide-react'
 import type { UseProgressReturn } from '../hooks/useProgress'
 import { allQuestions, coderbyteQuestions, practiceCategories, totalAllQuestions } from '../data'
 import { ProgressBar } from '../components/ProgressBar'
@@ -42,6 +42,13 @@ export function Dashboard({ progress }: DashboardProps) {
       color: 'bg-rose-500',
     },
     {
+      label: 'Favorites',
+      description: 'Revisit the questions you starred',
+      icon: Star,
+      onClick: () => navigate('/practice/favorites'),
+      color: 'bg-amber-500',
+    },
+    {
       label: 'Mock Interview',
       description: 'Simulate a real interview across all categories',
       icon: MessageSquareText,
@@ -76,6 +83,12 @@ export function Dashboard({ progress }: DashboardProps) {
           <StatTile label="Remaining" value={stats.remaining} icon={Clock} />
           <StatTile label="Mastered" value={stats.mastered} icon={Award} accent="text-emerald-600" />
         </div>
+        {stats.favorites > 0 && (
+          <p className="mt-4 flex items-center gap-1.5 text-sm text-amber-600">
+            <Star size={14} />
+            {stats.favorites} favorite question{stats.favorites === 1 ? '' : 's'} saved.
+          </p>
+        )}
         {stats.difficult > 0 && (
           <p className="mt-4 flex items-center gap-1.5 text-sm text-rose-600">
             <Flag size={14} />
@@ -86,7 +99,7 @@ export function Dashboard({ progress }: DashboardProps) {
 
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Quick Actions</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {actionCards.map((card) => (
             <button
               key={card.label}
