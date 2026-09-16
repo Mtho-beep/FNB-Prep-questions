@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { Menu, RotateCcw, Cloud, CloudOff, Loader2 } from 'lucide-react'
 import { Sidebar } from './components/Sidebar'
@@ -89,6 +89,12 @@ function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const progress = useProgress()
   const location = useLocation()
+
+  // Start each page at the top (#root is the scroll container when embedded).
+  useEffect(() => {
+    document.getElementById('root')?.scrollTo(0, 0)
+    window.scrollTo(0, 0)
+  }, [location.pathname])
 
   return (
     <div className="flex min-h-screen bg-slate-50">

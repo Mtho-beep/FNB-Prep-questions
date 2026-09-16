@@ -19,6 +19,23 @@ html, body, #root {
   height: 100%;
 }
 
+/*
+ * Inside Streamlit the app's iframe is created with scrolling disabled, so the
+ * iframe document itself can't scroll (on touch devices nothing moves at all).
+ * #root becomes the scroll container instead, which works on every device.
+ */
+html.embedded,
+html.embedded body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+html.embedded #root {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

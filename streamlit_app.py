@@ -19,6 +19,32 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Pin the app's iframe to the full screen. The app scrolls inside it, so the
+# Streamlit page itself must not scroll (two nested scrollers break touch
+# scrolling on phones). `dvh` tracks mobile browser toolbars showing/hiding.
+FULLSCREEN_APP_CSS = """
+<style>
+  html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+  iframe[data-testid="stCustomComponentV1"] {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    border: 0 !important;
+    z-index: 999990;
+  }
+  /* Every save reruns the script; don't dim the app while that happens. */
+  [data-stale="true"], .stale-element {
+    opacity: 1 !important;
+    transition: none !important;
+  }
+</style>
+"""
+
 build_dir = Path(__file__).parent / "streamlit_build"
 if not (build_dir / "index.html").exists():
     st.error("streamlit_build/index.html is missing. Run `npm run build:streamlit` first.")
@@ -88,6 +114,8 @@ if update and update.get("rev") != st.session_state.attempted_rev:
         st.session_state.save_error = str(exc)
 
 prep_app = components.declare_component("fnb_prep_app", path=str(build_dir))
+
+st.markdown(FULLSCREEN_APP_CSS, unsafe_allow_html=True)
 
 # `progress` is only read by the app when it first loads.
 prep_app(
