@@ -53,10 +53,17 @@ const MIC_BLOCKED_BY_SYSTEM =
 const SPEECH_SERVICE_BLOCKED =
   "The microphone is allowed, but this browser refused to start speech recognition. Use Google Chrome or Microsoft Edge (Brave, Opera and some privacy settings block it). You can continue in text mode."
 
+const MIC_NOT_FOUND =
+  'No microphone was found. Plug in a headset or webcam microphone and check Windows Settings → System → Sound → Input, or continue in text mode.'
+const MIC_BUSY =
+  'A microphone was found but could not be opened. Another app (Teams, Zoom, Discord or another browser tab) may be using it, or its driver is blocking it. Close those apps and try again, or continue in text mode.'
+const MIC_CAPTURE_LOST =
+  'The microphone stopped capturing audio. Check it is still connected, not muted, set as the default input and not in use by another app, then tap the microphone again.'
+
 const ERROR_MESSAGES: Record<string, string> = {
   'not-allowed': 'Microphone permission was denied. You can continue in text mode.',
   'service-not-allowed': 'Speech recognition is blocked in this browser. You can continue in text mode.',
-  'audio-capture': 'No microphone was found. Check that one is connected, or continue in text mode.',
+  'audio-capture': MIC_NOT_FOUND,
   network: 'Speech recognition needs a network connection in this browser. Your typed answer is still available.',
   'no-speech': "I didn't hear anything. Tap the microphone and try again.",
   'language-not-supported': 'This speech language is not supported. Try another language in the voice settings.',
@@ -73,6 +80,10 @@ export function useSpeechRecognition(lang: string) {
   const recognitionRef = useRef<Recognition | null>(null)
   const userStoppedRef = useRef(false)
   const micGrantedRef = useRef(false)
+  const permissionRef = useRef<MicPermission>('unknown')
+  useEffect(() => {
+    permissionRef.current = permission
+  }, [permission])
 
   // Read the microphone permission where the Permissions API supports it.
   useEffect(() => {
@@ -113,8 +124,12 @@ export function useSpeechRecognition(lang: string) {
         setError({ code: 'not-allowed', message: bySystem ? MIC_BLOCKED_BY_SYSTEM : MIC_BLOCKED_BY_SITE })
         return false
       }
-      if (name === 'NotFoundError' || name === 'NotReadableError') {
-        setError({ code: 'audio-capture', message: ERROR_MESSAGES['audio-capture'] })
+      if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        setError({ code: 'mic-not-found', message: MIC_NOT_FOUND })
+        return false
+      }
+      if (name === 'NotReadableError' || name === 'AbortError') {
+        setError({ code: 'mic-busy', message: MIC_BUSY })
         return false
       }
       return true // unknown problem — let speech recognition try anyway
@@ -163,6 +178,11 @@ export function useSpeechRecognition(lang: string) {
         setError({ code: 'service-not-allowed', message: SPEECH_SERVICE_BLOCKED })
         return
       }
+      if (e.error === 'audio-capture' && micGrantedRef.current) {
+        // The mic opened fine a moment ago, so it exists — capture failed.
+        setError({ code: 'audio-capture', message: MIC_CAPTURE_LOST })
+        return
+      }
       setError({ code: e.error, message: ERROR_MESSAGES[e.error] ?? `Speech recognition error: ${e.error}.` })
     }
     rec.onend = () => {
@@ -204,6 +224,9 @@ export function useSpeechRecognition(lang: string) {
 
   useEffect(() => () => recognitionRef.current?.abort(), [])
 
+  /** Current permission without waiting for a re-render (safe inside async callbacks). */
+  const isMicGranted = useCallback(() => micGrantedRef.current || permissionRef.current === 'granted', [])
+
   return {
     supported,
     listening,
@@ -216,6 +239,7 @@ export function useSpeechRecognition(lang: string) {
     stop,
     abort,
     reset,
+    isMicGranted,
   }
 }
 

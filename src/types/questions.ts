@@ -4,6 +4,7 @@
 // used by src/data/*.ts and consumed throughout components, hooks and pages.
 
 import type { VoiceInterviewSession } from './interview'
+import type { StudySession } from './study'
 
 /** The 17 practice categories shown in the sidebar / dashboard. */
 export type Category =
@@ -103,6 +104,8 @@ export interface ProgressState {
   mockInterviewHistory: MockInterviewSession[]
   /** Completed voice AI mock interviews (optional so older saved state still loads). */
   voiceInterviewHistory?: VoiceInterviewSession[]
+  /** Completed AI Study Podcast sessions (optional so older saved state still loads). */
+  studySessionHistory?: StudySession[]
 }
 
 export type QuestionMode = 'browse' | 'random' | 'weak' | 'mock' | 'rapid'

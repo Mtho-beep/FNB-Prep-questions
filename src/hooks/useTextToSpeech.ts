@@ -45,9 +45,17 @@ export interface TextToSpeechOptions {
   voiceURI: string
   rate: number
   pitch: number
+  /** 0–1, defaults to 1. */
+  volume?: number
 }
 
-export function useTextToSpeech({ voiceURI, rate, pitch }: TextToSpeechOptions) {
+/** Per-call overrides, e.g. a second voice for a two-person discussion. */
+export interface SpeakOverrides {
+  voice?: SpeechSynthesisVoice
+  pitch?: number
+}
+
+export function useTextToSpeech({ voiceURI, rate, pitch, volume = 1 }: TextToSpeechOptions) {
   const supported = typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [speaking, setSpeaking] = useState(false)
@@ -72,7 +80,7 @@ export function useTextToSpeech({ voiceURI, rate, pitch }: TextToSpeechOptions) 
 
   /** Speaks the text; resolves when finished, stopped or failed. */
   const speak = useCallback(
-    (text: string): Promise<void> => {
+    (text: string, overrides: SpeakOverrides = {}): Promise<void> => {
       if (!supported || !text.trim()) return Promise.resolve()
       const synth = window.speechSynthesis
       synth.cancel()
@@ -91,12 +99,14 @@ export function useTextToSpeech({ voiceURI, rate, pitch }: TextToSpeechOptions) 
         }
         for (const chunk of chunks) {
           const u = new SpeechSynthesisUtterance(chunk)
-          if (selectedVoice) {
-            u.voice = selectedVoice
-            u.lang = selectedVoice.lang
+          const voice = overrides.voice ?? selectedVoice
+          if (voice) {
+            u.voice = voice
+            u.lang = voice.lang
           }
           u.rate = rate
-          u.pitch = pitch
+          u.pitch = overrides.pitch ?? pitch
+          u.volume = volume
           u.onend = () => {
             remaining -= 1
             if (remaining === 0) done()
@@ -110,7 +120,7 @@ export function useTextToSpeech({ voiceURI, rate, pitch }: TextToSpeechOptions) 
         }
       })
     },
-    [supported, selectedVoice, rate, pitch],
+    [supported, selectedVoice, rate, pitch, volume],
   )
 
   const stop = useCallback(() => {

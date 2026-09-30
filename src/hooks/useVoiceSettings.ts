@@ -12,6 +12,7 @@ export interface VoiceSettings {
   voiceURI: string
   rate: number
   pitch: number
+  volume: number
   lang: string
   provider: ProviderPreference
 }
@@ -24,6 +25,7 @@ export const defaultVoiceSettings: VoiceSettings = {
   voiceURI: '',
   rate: 1,
   pitch: 1,
+  volume: 1,
   lang: 'en-ZA',
   provider: 'auto',
 }

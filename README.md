@@ -32,6 +32,37 @@ practice tool.
   progress, and mock interview history — with a "Reset Progress" option (with confirmation).
 - Responsive layout (desktop/tablet/mobile) with a collapsible sidebar.
 - **AI Voice Mock Interview** (`/voice-interview`) — see below.
+- **AI Study Podcast / Tutor** (`/study-podcast`) — see below.
+
+## AI Study Podcast / Tutor
+
+An AI tutor that teaches the app's existing material out loud, which you can interrupt at any moment.
+
+- **Grounded in the existing content**: each topic (`services/studyTopics.ts`) is a *filter* over the
+  question bank — RAG, AI Agents, SQL, PostgreSQL, the FNB Intelligent Banking project, StudyTogether, SARAO,
+  Behavioural, Coderbyte and more. Lessons are built from those questions' model answers, key points and
+  project notes; the "📚 Based on" panel links every section to the real question it came from. The tutor
+  says when it goes beyond your notes, and refuses to invent facts about you, FNB or SARAO.
+- **Modes**: Teach Me (from basics), Deep Dive, FNB Interview Prep; ⚡ 15-Minute Revision (weighted to what
+  you marked Difficult); 📚 Teach Me Everything (a 13-topic curriculum with progress); focused 10-minute
+  lessons on concepts you keep asking about.
+- **Chunked teaching**: the AI first plans the lesson, then writes one 30–90 second section at a time
+  (pre-fetching the next while speaking). Passive / Balanced / Interactive controls how often it asks quick
+  checks and "does that make sense?".
+- **Interrupt and resume**: 🎙 Ask / Interrupt (or the space bar) stops speech immediately and listens; the
+  question is sent after a short pause. The tutor answers using the current section and conversation
+  ("give me an example" means an example of what you were just discussing), then resumes at the exact
+  sentence it was on. Spoken commands work too: "stop", "pause", "continue", "repeat", "skip",
+  "explain it simply", "go deeper", "give me an example", "quiz me".
+- **Hands-free (experimental)** keeps the mic open so you can just start talking; it filters out the
+  tutor's own voice, but use headphones — browsers can't reliably separate speaker echo.
+- **Controls**: play, pause, stop, replay, skip section, speed 0.75–2×, volume; Explain Simply, Go Deeper,
+  Give Me an Example, Quiz Me (existing questions, scored by the interview evaluator) and Interview Me
+  (opens the voice interview in the matching mode). Optional two-person Host/Expert discussion (beta).
+- **Progress**: sessions are saved to **My Study Sessions** (and Neon when hosted) with what was covered,
+  your questions, quick-check results and weak concepts, which feed future recommendations.
+- Works without voice: type questions and answers; without text-to-speech the lesson is shown as text at
+  reading pace. With no AI provider it reads your notes (clearly labelled) instead of teaching.
 
 ## AI Voice Mock Interview
 
@@ -86,15 +117,18 @@ src/
   components/     Sidebar, QuestionCard, AnswerDropdown, ProgressBar, CategoryCard,
                    MockInterview, CodingQuestion, CodeEditor, SearchBar, Filters, Badge
     voice/         VoiceInterviewSetup, VoiceInterviewRoom, InterviewReportView, VoiceInterviewSummary
+    study/         StudySetup, StudyPlayer, StudySummary
   data/            One .ts file per category + coderbyteQuestions.ts, rapidFireQuestions.ts,
                    candidateProfile.ts (facts the interviewer may rely on), index.ts
   pages/           Dashboard, Practice, MockInterviewPage, Coderbyte, RapidFire,
-                   VoiceInterviewPage, InterviewHistoryPage, QuestionPage
+                   VoiceInterviewPage, InterviewHistoryPage, QuestionPage,
+                   StudyPodcastPage, StudySessionsPage
   hooks/           useLocalStorage, useProgress, useQuestions, useSpeechRecognition,
-                   useTextToSpeech, useVoiceSettings, useVoiceInterview
-  services/        interviewAdapter, interviewPlanner, interviewContext, interviewEvaluator, aiProvider
-  types/           questions.ts, interview.ts (shared data models)
-  utils/           slug.ts (category <-> URL slug mapping), time.ts
+                   useTextToSpeech, useVoiceSettings, useVoiceInterview, useStudyTutor
+  services/        interviewAdapter, interviewPlanner, interviewContext, interviewEvaluator, aiProvider,
+                   studyTopics, tutorContext, tutorHelpers
+  types/           questions.ts, interview.ts, study.ts (shared data models)
+  utils/           slug.ts (category <-> URL slug mapping), time.ts, studyLinks.ts
   App.tsx, main.tsx, index.css
 ```
 
@@ -128,5 +162,10 @@ npm run preview
   tell whether a technical claim is correct. Use Groq, Claude or Ollama for real evaluation.
 - Small local models (e.g. an 8B model on CPU) can take a minute or more per answer; Groq or Claude is
   much faster.
-- Groq's free tier has rate limits; if you hit one, that answer is scored offline and the interview continues.
+- Groq's free tier allows 8,000 tokens per minute and 1,000 requests per day. Asking many questions in
+  quick succession makes Groq queue requests (answers can then take 10–20 s). If a request fails, that
+  answer falls back to offline scoring / your notes and the session continues.
+- Hands-free interruption in the study podcast is experimental: the browser's speech recognition can hear
+  the tutor through your speakers. Use headphones, or the Ask / Interrupt button.
+- An in-progress study session is not restored after a page reload (completed sessions are saved).
 - The practice score is not a prediction of a real interview outcome.

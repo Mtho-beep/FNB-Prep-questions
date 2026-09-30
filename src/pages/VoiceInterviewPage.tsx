@@ -19,7 +19,7 @@ export function VoiceInterviewPage({ progress }: VoiceInterviewPageProps) {
   const { settings, update } = useVoiceSettings()
   const engine = useVoiceInterview(progress)
   const recognition = useSpeechRecognition(settings.lang)
-  const tts = useTextToSpeech({ voiceURI: settings.voiceURI, rate: settings.rate, pitch: settings.pitch })
+  const tts = useTextToSpeech({ voiceURI: settings.voiceURI, rate: settings.rate, pitch: settings.pitch, volume: settings.volume })
 
   function handleStart(mode: InterviewMode, difficulty: InterviewDifficulty, provider: ProviderKind) {
     tts.stop()

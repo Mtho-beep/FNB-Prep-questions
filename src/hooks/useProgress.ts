@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { usePersistentProgress } from './usePersistentProgress'
 import type { Category, MockInterviewSession, ProgressState, QuestionProgress } from '../types/questions'
 import type { ScoreArea, VoiceInterviewSession } from '../types/interview'
+import type { StudySession } from '../types/study'
 import { allQuestions, coderbyteQuestions, practiceCategories, questionsByCategory } from '../data'
 
 const STORAGE_KEY = 'fnb-ai-interview-prep:progress:v1'
@@ -10,9 +11,11 @@ const emptyProgressState: ProgressState = {
   questions: {},
   mockInterviewHistory: [],
   voiceInterviewHistory: [],
+  studySessionHistory: [],
 }
 
 const MAX_VOICE_SESSIONS = 20
+const MAX_STUDY_SESSIONS = 30
 
 const defaultQuestionProgress: QuestionProgress = { completed: false, mastered: false, difficult: false, favorite: false }
 
@@ -34,6 +37,7 @@ export function setInitialRemoteProgress(progress: unknown) {
       ...p,
       mockInterviewHistory: p.mockInterviewHistory ?? [],
       voiceInterviewHistory: p.voiceInterviewHistory ?? [],
+      studySessionHistory: p.studySessionHistory ?? [],
     }
   }
 }
@@ -160,6 +164,25 @@ export function useProgress() {
     [setState],
   )
 
+  const addStudySession = useCallback(
+    (session: StudySession) => {
+      setState((prev) => ({
+        ...prev,
+        studySessionHistory: [session, ...(prev.studySessionHistory ?? [])].slice(0, MAX_STUDY_SESSIONS),
+      }))
+    },
+    [setState],
+  )
+
+  const deleteStudySession = useCallback(
+    (id: string) => {
+      setState((prev) => ({ ...prev, studySessionHistory: (prev.studySessionHistory ?? []).filter((s) => s.id !== id) }))
+    },
+    [setState],
+  )
+
+  const studySessionHistory = useMemo(() => state.studySessionHistory ?? [], [state.studySessionHistory])
+
   const voiceInterviewHistory = useMemo(() => state.voiceInterviewHistory ?? [], [state.voiceInterviewHistory])
 
   const voiceStats = useMemo(() => {
@@ -246,6 +269,9 @@ export function useProgress() {
     deleteVoiceInterviewSession,
     voiceInterviewHistory,
     voiceStats,
+    addStudySession,
+    deleteStudySession,
+    studySessionHistory,
     resetProgress,
     stats,
     recentActivity,

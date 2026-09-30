@@ -77,7 +77,7 @@ export function VoiceInterviewRoom({ engine, settings, recognition, tts }: Voice
       speak(turn.text).then(() => {
         // Only auto-open the mic once permission is granted: without a click the
         // browser can't show a permission prompt, so starting would just fail.
-        if (settings.autoListen && voiceActive && recognition.permission === 'granted' && lastSpokenRef.current === turn.id) {
+        if (settings.autoListen && voiceActive && recognition.isMicGranted() && lastSpokenRef.current === turn.id) {
           baseRef.current = ''
           startRecognition()
         }

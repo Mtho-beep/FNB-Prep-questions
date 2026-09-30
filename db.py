@@ -35,6 +35,12 @@ CREATE TABLE IF NOT EXISTS voice_interview_sessions (
     data         JSONB NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS study_sessions (
+    id           TEXT PRIMARY KEY,
+    session_date TIMESTAMPTZ NOT NULL,
+    data         JSONB NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS app_state (
     key   TEXT PRIMARY KEY,
     value JSONB
@@ -65,9 +71,10 @@ def load_progress(database_url: str) -> dict[str, Any] | None:
         voice_sessions = conn.execute(
             "SELECT data FROM voice_interview_sessions ORDER BY session_date DESC LIMIT 20"
         ).fetchall()
+        study_sessions = conn.execute("SELECT data FROM study_sessions ORDER BY session_date DESC LIMIT 30").fetchall()
         last_viewed = conn.execute("SELECT value FROM app_state WHERE key = 'lastViewedQuestionId'").fetchone()
 
-    if not rows and not sessions and not voice_sessions and not last_viewed:
+    if not rows and not sessions and not voice_sessions and not study_sessions and not last_viewed:
         return None
 
     questions: dict[str, Any] = {}
@@ -86,6 +93,7 @@ def load_progress(database_url: str) -> dict[str, Any] | None:
         "questions": questions,
         "mockInterviewHistory": [row[0] for row in sessions],
         "voiceInterviewHistory": [row[0] for row in voice_sessions],
+        "studySessionHistory": [row[0] for row in study_sessions],
     }
     if last_viewed and last_viewed[0]:
         state["lastViewedQuestionId"] = last_viewed[0]
@@ -122,6 +130,11 @@ def save_progress(database_url: str, new: dict[str, Any], old: dict[str, Any] | 
     old_voice_ids = {s["id"] for s in old.get("voiceInterviewHistory") or []}
     added_voice = [s for sid, s in new_voice.items() if sid not in old_voice_ids]
     removed_voice = [sid for sid in old_voice_ids if sid not in new_voice]
+
+    new_study = {s["id"]: s for s in new.get("studySessionHistory") or []}
+    old_study_ids = {s["id"] for s in old.get("studySessionHistory") or []}
+    added_study = [s for sid, s in new_study.items() if sid not in old_study_ids]
+    removed_study = [sid for sid in old_study_ids if sid not in new_study]
 
     with connect(database_url) as conn, conn.transaction():
         with conn.cursor() as cur:
@@ -165,6 +178,17 @@ def save_progress(database_url: str, new: dict[str, Any], old: dict[str, Any] | 
                 )
             if removed_voice:
                 cur.execute("DELETE FROM voice_interview_sessions WHERE id = ANY(%s)", (removed_voice,))
+            if added_study:
+                cur.executemany(
+                    """
+                    INSERT INTO study_sessions (id, session_date, data)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
+                    """,
+                    [(s["id"], s["date"], Jsonb(s)) for s in added_study],
+                )
+            if removed_study:
+                cur.execute("DELETE FROM study_sessions WHERE id = ANY(%s)", (removed_study,))
             if new.get("lastViewedQuestionId") != old.get("lastViewedQuestionId"):
                 cur.execute(
                     """

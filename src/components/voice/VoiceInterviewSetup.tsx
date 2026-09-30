@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   AlertTriangle,
   ArrowRight,
@@ -53,7 +53,9 @@ interface VoiceInterviewSetupProps {
 }
 
 export function VoiceInterviewSetup({ settings, updateSettings, tts, recognitionSupported, engine, onStart }: VoiceInterviewSetupProps) {
-  const [mode, setMode] = useState<InterviewMode>('full')
+  // "Interview Me" in the study podcast opens this page with a mode preselected.
+  const requestedMode = (useLocation().state as { mode?: InterviewMode } | null)?.mode
+  const [mode, setMode] = useState<InterviewMode>(requestedMode && MODE_CONFIGS[requestedMode] ? requestedMode : 'full')
   const [difficulty, setDifficulty] = useState<InterviewDifficulty>('Adaptive')
   const [status, setStatus] = useState<ProviderStatus | null>(null)
   const [checkCount, setCheckCount] = useState(0)

@@ -22,6 +22,8 @@ import {
   Star,
   Mic,
   History,
+  Headphones,
+  BookOpen,
 } from 'lucide-react'
 import type { Category } from '../types/questions'
 import { categoryToSlug } from '../utils/slug'
@@ -147,6 +149,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <NavLink to="/interview-history" className={({ isActive }) => navLinkClasses(isActive)} onClick={onClose}>
                 <History size={18} />
                 Interview History
+              </NavLink>
+              <NavLink to="/study-podcast" className={({ isActive }) => navLinkClasses(isActive)} onClick={onClose}>
+                <Headphones size={18} />
+                AI Study Podcast
+              </NavLink>
+              <NavLink to="/study-sessions" className={({ isActive }) => navLinkClasses(isActive)} onClick={onClose}>
+                <BookOpen size={18} />
+                My Study Sessions
               </NavLink>
             </div>
           </div>
