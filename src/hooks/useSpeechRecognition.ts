@@ -46,6 +46,13 @@ export interface RecognitionError {
   message: string
 }
 
+const MIC_BLOCKED_BY_SITE =
+  'Microphone access is blocked for this site. Click the microphone or lock icon in the address bar, set Microphone to Allow, then reload the page. You can continue in text mode meanwhile.'
+const MIC_BLOCKED_BY_SYSTEM =
+  'Your operating system is blocking the microphone. On Windows: Settings → Privacy & security → Microphone → turn on access for apps and desktop apps. You can continue in text mode meanwhile.'
+const SPEECH_SERVICE_BLOCKED =
+  "The microphone is allowed, but this browser refused to start speech recognition. Use Google Chrome or Microsoft Edge (Brave, Opera and some privacy settings block it). You can continue in text mode."
+
 const ERROR_MESSAGES: Record<string, string> = {
   'not-allowed': 'Microphone permission was denied. You can continue in text mode.',
   'service-not-allowed': 'Speech recognition is blocked in this browser. You can continue in text mode.',
@@ -65,6 +72,7 @@ export function useSpeechRecognition(lang: string) {
   const [stoppedUnexpectedly, setStoppedUnexpectedly] = useState(false)
   const recognitionRef = useRef<Recognition | null>(null)
   const userStoppedRef = useRef(false)
+  const micGrantedRef = useRef(false)
 
   // Read the microphone permission where the Permissions API supports it.
   useEffect(() => {
@@ -83,12 +91,44 @@ export function useSpeechRecognition(lang: string) {
     return () => status?.removeEventListener('change', update)
   }, [])
 
-  const start = useCallback(() => {
+  /**
+   * Asks for the microphone with getUserMedia first. SpeechRecognition on its
+   * own often fails with "not-allowed" instead of showing a permission prompt
+   * (notably inside iframes such as the Streamlit component), so this is what
+   * reliably triggers the browser's prompt. Call from a click handler.
+   */
+  const requestMicrophone = useCallback(async (): Promise<boolean> => {
+    if (micGrantedRef.current || !navigator.mediaDevices?.getUserMedia) return true
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach((t) => t.stop())
+      micGrantedRef.current = true
+      setPermission('granted')
+      return true
+    } catch (err) {
+      const { name, message } = err as DOMException
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        const bySystem = /system/i.test(message)
+        if (!bySystem) setPermission('denied')
+        setError({ code: 'not-allowed', message: bySystem ? MIC_BLOCKED_BY_SYSTEM : MIC_BLOCKED_BY_SITE })
+        return false
+      }
+      if (name === 'NotFoundError' || name === 'NotReadableError') {
+        setError({ code: 'audio-capture', message: ERROR_MESSAGES['audio-capture'] })
+        return false
+      }
+      return true // unknown problem — let speech recognition try anyway
+    }
+  }, [])
+
+  const start = useCallback(async () => {
     const Ctor = getRecognitionCtor()
     if (!Ctor) {
       setError({ code: 'unsupported', message: 'Voice recognition is not supported by this browser. You can continue using text mode.' })
       return
     }
+    setError(null)
+    if (!(await requestMicrophone())) return
     recognitionRef.current?.abort()
     const rec = new Ctor()
     rec.lang = lang
@@ -118,7 +158,11 @@ export function useSpeechRecognition(lang: string) {
     }
     rec.onerror = (e) => {
       if (e.error === 'aborted') return
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') setPermission('denied')
+      if ((e.error === 'not-allowed' || e.error === 'service-not-allowed') && micGrantedRef.current) {
+        // The mic itself works, so it's the browser's speech service that refused.
+        setError({ code: 'service-not-allowed', message: SPEECH_SERVICE_BLOCKED })
+        return
+      }
       setError({ code: e.error, message: ERROR_MESSAGES[e.error] ?? `Speech recognition error: ${e.error}.` })
     }
     rec.onend = () => {
@@ -134,7 +178,7 @@ export function useSpeechRecognition(lang: string) {
     } catch (err) {
       setError({ code: 'start-failed', message: `Could not start the microphone: ${(err as Error).message}` })
     }
-  }, [lang])
+  }, [lang, requestMicrophone])
 
   /** Stops listening; any pending final result is still delivered. */
   const stop = useCallback(() => {

@@ -75,7 +75,9 @@ export function VoiceInterviewRoom({ engine, settings, recognition, tts }: Voice
     resetRecognition()
     if (settings.voiceMode && settings.autoSpeak && tts.supported) {
       speak(turn.text).then(() => {
-        if (settings.autoListen && voiceActive && lastSpokenRef.current === turn.id) {
+        // Only auto-open the mic once permission is granted: without a click the
+        // browser can't show a permission prompt, so starting would just fail.
+        if (settings.autoListen && voiceActive && recognition.permission === 'granted' && lastSpokenRef.current === turn.id) {
           baseRef.current = ''
           startRecognition()
         }
@@ -286,7 +288,7 @@ export function VoiceInterviewRoom({ engine, settings, recognition, tts }: Voice
               <button
                 type="button"
                 onClick={startListening}
-                disabled={processing || recognition.permission === 'denied'}
+                disabled={processing}
                 className="focus-ring flex items-center gap-2 rounded-lg bg-navy-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-50"
               >
                 {recognition.permission === 'denied' ? <MicOff size={16} /> : <Mic size={16} />}
