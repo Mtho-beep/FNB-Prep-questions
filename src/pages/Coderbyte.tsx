@@ -1,7 +1,19 @@
+import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { coderbyteQuestions } from '../data'
 import { CodingQuestion } from '../components/CodingQuestion'
 
 export function Coderbyte() {
+  const { hash } = useLocation()
+
+  // Voice-interview links point at a specific problem (#cb-001). Deferred so
+  // it runs after AppShell's scroll-to-top on navigation.
+  useEffect(() => {
+    if (!hash) return
+    const timer = window.setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+    return () => window.clearTimeout(timer)
+  }, [hash])
+
   return (
     <div className="space-y-5">
       <div>

@@ -21,6 +21,19 @@ export interface StreamlitArgs {
   progress?: unknown
   saved_rev?: string | null
   save_error?: string | null
+  /** True when streamlit_app.py has an ANTHROPIC_API_KEY secret configured. */
+  llm_available?: boolean
+  llm_model?: string | null
+  /** Answers to LLM requests, keyed by request id. */
+  llm_results?: Record<string, { text?: string; error?: string }> | null
+}
+
+/** A chat completion request forwarded to streamlit_app.py (which holds the API key). */
+export interface LlmRequest {
+  id: string
+  system: string
+  messages: { role: 'user' | 'assistant'; content: string }[]
+  max_tokens: number
 }
 
 function post(type: string, extra: Record<string, unknown> = {}) {
@@ -50,7 +63,60 @@ export function useSaveStatus(): { status: SaveStatus; error: string | null } {
   return { status, error: saveError }
 }
 
+// --- Server-side LLM proxy (used by the voice interviewer) ---
+let llmAvailable = false
+let llmModel: string | null = null
+let lastRev: string | null = null
+let lastProgress: unknown = null
+const pendingLlm = new Map<
+  string,
+  { request: LlmRequest; resolve: (text: string) => void; reject: (err: Error) => void; timer: number }
+>()
+
+export function getStreamlitLlm(): { available: boolean; model: string | null } {
+  return { available: llmAvailable, model: llmModel }
+}
+
+/**
+ * Every component value carries the latest progress snapshot plus all
+ * unanswered LLM requests. Streamlit only keeps the most recent value, so
+ * sending everything each time means nothing is lost when posts coalesce.
+ */
+function postValue() {
+  post('streamlit:setComponentValue', {
+    value: { rev: lastRev, progress: lastProgress, llm_requests: [...pendingLlm.values()].map((p) => p.request) },
+    dataType: 'json',
+  })
+}
+
+/** Sends a prompt to the Python side and resolves with the model's text. */
+export function requestLlm(request: Omit<LlmRequest, 'id'>, timeoutMs = 90_000): Promise<string> {
+  const id = `llm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      pendingLlm.delete(id)
+      reject(new Error('The AI interviewer did not respond in time.'))
+    }, timeoutMs)
+    pendingLlm.set(id, { request: { ...request, id }, resolve, reject, timer })
+    postValue()
+  })
+}
+
+function applyLlmArgs(args: StreamlitArgs) {
+  llmAvailable = Boolean(args.llm_available)
+  llmModel = args.llm_model ?? null
+  for (const [id, result] of Object.entries(args.llm_results ?? {})) {
+    const pending = pendingLlm.get(id)
+    if (!pending) continue
+    window.clearTimeout(pending.timer)
+    pendingLlm.delete(id)
+    if (typeof result.text === 'string') pending.resolve(result.text)
+    else pending.reject(new Error(result.error || 'The AI interviewer returned an error.'))
+  }
+}
+
 function handleArgs(args: StreamlitArgs) {
+  applyLlmArgs(args)
   if (!pendingRev) return
   if (args.save_error && args.saved_rev !== pendingRev) {
     setSaveStatus('error', args.save_error)
@@ -82,6 +148,7 @@ export function connectToStreamlit(): Promise<StreamlitArgs> {
       const args = (event.data.args ?? {}) as StreamlitArgs
       if (first) {
         first = false
+        applyLlmArgs(args)
         syncFrameHeight()
         resolve(args)
       } else {
@@ -96,6 +163,8 @@ export function connectToStreamlit(): Promise<StreamlitArgs> {
 /** Sends a progress snapshot to Python. `rev` lets Python skip duplicate saves. */
 export function sendProgress(rev: string, progress: unknown) {
   pendingRev = rev
+  lastRev = rev
+  lastProgress = progress
   setSaveStatus('saving')
-  post('streamlit:setComponentValue', { value: { rev, progress }, dataType: 'json' })
+  postValue()
 }

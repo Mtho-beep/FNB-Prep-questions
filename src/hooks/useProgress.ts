@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { usePersistentProgress } from './usePersistentProgress'
 import type { Category, MockInterviewSession, ProgressState, QuestionProgress } from '../types/questions'
+import type { ScoreArea, VoiceInterviewSession } from '../types/interview'
 import { allQuestions, coderbyteQuestions, practiceCategories, questionsByCategory } from '../data'
 
 const STORAGE_KEY = 'fnb-ai-interview-prep:progress:v1'
@@ -8,7 +9,10 @@ const STORAGE_KEY = 'fnb-ai-interview-prep:progress:v1'
 const emptyProgressState: ProgressState = {
   questions: {},
   mockInterviewHistory: [],
+  voiceInterviewHistory: [],
 }
+
+const MAX_VOICE_SESSIONS = 20
 
 const defaultQuestionProgress: QuestionProgress = { completed: false, mastered: false, difficult: false, favorite: false }
 
@@ -26,7 +30,11 @@ let initialRemoteProgress: ProgressState | undefined
 export function setInitialRemoteProgress(progress: unknown) {
   if (progress && typeof progress === 'object' && 'questions' in progress) {
     const p = progress as ProgressState
-    initialRemoteProgress = { ...p, mockInterviewHistory: p.mockInterviewHistory ?? [] }
+    initialRemoteProgress = {
+      ...p,
+      mockInterviewHistory: p.mockInterviewHistory ?? [],
+      voiceInterviewHistory: p.voiceInterviewHistory ?? [],
+    }
   }
 }
 
@@ -132,6 +140,44 @@ export function useProgress() {
     [setState],
   )
 
+  const addVoiceInterviewSession = useCallback(
+    (session: VoiceInterviewSession) => {
+      setState((prev) => ({
+        ...prev,
+        voiceInterviewHistory: [session, ...(prev.voiceInterviewHistory ?? [])].slice(0, MAX_VOICE_SESSIONS),
+      }))
+    },
+    [setState],
+  )
+
+  const deleteVoiceInterviewSession = useCallback(
+    (id: string) => {
+      setState((prev) => ({
+        ...prev,
+        voiceInterviewHistory: (prev.voiceInterviewHistory ?? []).filter((s) => s.id !== id),
+      }))
+    },
+    [setState],
+  )
+
+  const voiceInterviewHistory = useMemo(() => state.voiceInterviewHistory ?? [], [state.voiceInterviewHistory])
+
+  const voiceStats = useMemo(() => {
+    const scored = voiceInterviewHistory.filter((s) => s.report?.overall != null)
+    const average = (values: number[]) =>
+      values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : null
+    const areaAverage = (area: ScoreArea) =>
+      average(scored.map((s) => s.report!.areaScores[area]).filter((v): v is number => typeof v === 'number'))
+    return {
+      completed: voiceInterviewHistory.length,
+      averageScore: average(scored.map((s) => s.report!.overall!)),
+      technical: areaAverage('technical'),
+      communication: areaAverage('communication'),
+      project: areaAverage('project'),
+      last: voiceInterviewHistory[0] ?? null,
+    }
+  }, [voiceInterviewHistory])
+
   const resetProgress = useCallback(() => {
     setState(emptyProgressState)
   }, [setState])
@@ -196,6 +242,10 @@ export function useProgress() {
     toggleDifficult,
     toggleFavorite,
     addMockInterviewSession,
+    addVoiceInterviewSession,
+    deleteVoiceInterviewSession,
+    voiceInterviewHistory,
+    voiceStats,
     resetProgress,
     stats,
     recentActivity,

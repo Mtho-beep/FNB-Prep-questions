@@ -20,6 +20,8 @@ import {
   X,
   GraduationCap,
   Star,
+  Mic,
+  History,
 } from 'lucide-react'
 import type { Category } from '../types/questions'
 import { categoryToSlug } from '../utils/slug'
@@ -137,6 +139,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <NavLink to="/mock-interview" className={({ isActive }) => navLinkClasses(isActive)} onClick={onClose}>
                 <MessageSquareText size={18} />
                 Mock Interview
+              </NavLink>
+              <NavLink to="/voice-interview" className={({ isActive }) => navLinkClasses(isActive)} onClick={onClose}>
+                <Mic size={18} />
+                AI Voice Interview
+              </NavLink>
+              <NavLink to="/interview-history" className={({ isActive }) => navLinkClasses(isActive)} onClick={onClose}>
+                <History size={18} />
+                Interview History
               </NavLink>
             </div>
           </div>

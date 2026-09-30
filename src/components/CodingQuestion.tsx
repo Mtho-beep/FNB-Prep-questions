@@ -14,7 +14,7 @@ export function CodingQuestion({ question, index, total }: CodingQuestionProps) 
   const [started, setStarted] = useState(false)
 
   return (
-    <div className="animate-fade-in rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+    <div id={question.id} className="animate-fade-in scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
       <div className="mb-4 flex flex-wrap items-center gap-2.5">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
           <Code2 size={14} />

@@ -3,6 +3,8 @@
 // This file has no runtime logic — it only defines the TypeScript contracts
 // used by src/data/*.ts and consumed throughout components, hooks and pages.
 
+import type { VoiceInterviewSession } from './interview'
+
 /** The 17 practice categories shown in the sidebar / dashboard. */
 export type Category =
   | 'Behavioural & Soft Skills'
@@ -99,6 +101,8 @@ export interface ProgressState {
   questions: Record<string, QuestionProgress>
   lastViewedQuestionId?: string
   mockInterviewHistory: MockInterviewSession[]
+  /** Completed voice AI mock interviews (optional so older saved state still loads). */
+  voiceInterviewHistory?: VoiceInterviewSession[]
 }
 
 export type QuestionMode = 'browse' | 'random' | 'weak' | 'mock' | 'rapid'

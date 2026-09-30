@@ -6,6 +6,7 @@ import { allQuestions, coderbyteQuestions, practiceCategories, totalAllQuestions
 import { ProgressBar } from '../components/ProgressBar'
 import { CategoryCard } from '../components/CategoryCard'
 import { categoryToSlug } from '../utils/slug'
+import { VoiceInterviewSummary } from '../components/voice/VoiceInterviewSummary'
 
 interface DashboardProps {
   progress: UseProgressReturn
@@ -118,6 +119,8 @@ export function Dashboard({ progress }: DashboardProps) {
           ))}
         </div>
       </div>
+
+      <VoiceInterviewSummary progress={progress} />
 
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Category Progress</h2>

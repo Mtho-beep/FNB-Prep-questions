@@ -7,6 +7,9 @@ import { Practice } from './pages/Practice'
 import { MockInterviewPage } from './pages/MockInterviewPage'
 import { Coderbyte } from './pages/Coderbyte'
 import { RapidFire } from './pages/RapidFire'
+import { VoiceInterviewPage } from './pages/VoiceInterviewPage'
+import { InterviewHistoryPage } from './pages/InterviewHistoryPage'
+import { QuestionPage } from './pages/QuestionPage'
 import { useProgress } from './hooks/useProgress'
 import { isEmbedded, isStreamlit, useSaveStatus } from './lib/streamlit'
 
@@ -15,6 +18,9 @@ function pageTitleFor(pathname: string): string {
   if (pathname.startsWith('/coderbyte')) return 'Coderbyte Technical Assessment'
   if (pathname.startsWith('/rapid-fire')) return 'Rapid Fire'
   if (pathname.startsWith('/mock-interview')) return 'Mock Interview'
+  if (pathname.startsWith('/voice-interview')) return 'AI Voice Mock Interview'
+  if (pathname.startsWith('/interview-history')) return 'Interview History'
+  if (pathname.startsWith('/question/')) return 'Question'
   if (pathname === '/practice/favorites') return 'Favorites'
   if (pathname.startsWith('/practice')) return 'Practice'
   return 'AI Interview Prep'
@@ -127,6 +133,10 @@ function AppShell() {
               <Route path="/mock-interview" element={<MockInterviewPage progress={progress} />} />
               <Route path="/coderbyte" element={<Coderbyte />} />
               <Route path="/rapid-fire" element={<RapidFire />} />
+              <Route path="/voice-interview" element={<VoiceInterviewPage progress={progress} />} />
+              <Route path="/interview-history" element={<InterviewHistoryPage progress={progress} />} />
+              <Route path="/interview-history/:id" element={<InterviewHistoryPage progress={progress} />} />
+              <Route path="/question/:id" element={<QuestionPage progress={progress} />} />
             </Routes>
           </div>
         </main>
